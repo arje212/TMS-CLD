@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "vite --host :: --port 3000",
-    "build": "node -e \"import('./tools/generate-llms.js').catch(() => {})\" && vite build --outDir ../../dist/apps/web",
+   "build": "node -e \"import('./tools/generate-llms.js').catch(() => {})\" && npx --yes vite build --outDir ../../dist/apps/web",
     "start": "vite preview --outDir ../../dist/apps/web --host :: --port 3000",
     "lint": "eslint . --quiet",
     "lint:warn": "eslint ."
