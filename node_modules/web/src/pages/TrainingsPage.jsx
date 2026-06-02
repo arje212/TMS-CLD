@@ -20,12 +20,7 @@ const TrainingsPage = () => {
 
   useEffect(() => {
     fetchTrainings();
-
-    // Re-check every minute to auto-update status
-    const interval = setInterval(() => {
-      fetchTrainings();
-    }, 60000);
-
+    const interval = setInterval(() => { fetchTrainings(); }, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -39,24 +34,23 @@ const TrainingsPage = () => {
       const today = new Date().toISOString().split('T')[0];
       const now = new Date();
 
-      // Filter out past dates, keep today and future
-      const upcoming = result.items.filter(t => t.date >= today);
-
-      // Auto-update status based on current date + time
-      for (const training of upcoming) {
+      for (const training of result.items) {
         const trainingDateTime = new Date(`${training.date}T${training.time}`);
-
-        // If training time has passed and status is still 'upcoming' → set to 'ongoing'
-        if (now >= trainingDateTime && training.status === 'upcoming') {
+        if (training.date < today && (training.status === 'ongoing' || training.status === 'upcoming')) {
+          try {
+            await pb.collection('trainings').update(training.id, { status: 'completed' }, { $autoCancel: false });
+            training.status = 'completed';
+          } catch (err) { console.error('Failed to auto-complete:', err); }
+        }
+        if (training.date === today && now >= trainingDateTime && training.status === 'upcoming') {
           try {
             await pb.collection('trainings').update(training.id, { status: 'ongoing' }, { $autoCancel: false });
-            training.status = 'ongoing'; // update local copy immediately
-          } catch (err) {
-            console.error('Failed to auto-update status:', err);
-          }
+            training.status = 'ongoing';
+          } catch (err) { console.error('Failed to auto-update status:', err); }
         }
       }
 
+      const upcoming = result.items.filter(t => t.date >= today);
       setTrainings(upcoming);
     } catch (error) {
       console.error('Error fetching trainings:', error);
@@ -68,13 +62,11 @@ const TrainingsPage = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this training? This action cannot be undone.')) return;
-
     try {
       await pb.collection('trainings').delete(id, { $autoCancel: false });
       toast.success('Training deleted successfully');
       fetchTrainings();
     } catch (error) {
-      console.error('Error deleting training:', error);
       toast.error('Failed to delete training');
     }
   };
@@ -82,17 +74,14 @@ const TrainingsPage = () => {
   const getStatusBadge = (status) => {
     switch(status) {
       case 'completed': return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none">Completed</Badge>;
-      case 'ongoing': return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-none">Ongoing</Badge>;
-      default: return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none">Upcoming</Badge>;
+      case 'ongoing':   return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-none">Ongoing</Badge>;
+      default:          return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none">Upcoming</Badge>;
     }
   };
 
   return (
     <>
-      <Helmet>
-        <title>Pre-Training - TMS Pro</title>
-      </Helmet>
-
+      <Helmet><title>Pre-Training - TMS Pro</title></Helmet>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -100,8 +89,7 @@ const TrainingsPage = () => {
             <p className="text-muted-foreground mt-1">Manage and schedule all training sessions</p>
           </div>
           <Button onClick={() => { setSelectedTraining(null); setDialogOpen(true); }} className="shadow-sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Training
+            <Plus className="h-4 w-4 mr-2" />Create New Training
           </Button>
         </div>
 
@@ -109,7 +97,7 @@ const TrainingsPage = () => {
           <CardContent className="p-0">
             {loading ? (
               <div className="p-6 space-y-4">
-                {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
+                {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
               </div>
             ) : trainings.length === 0 ? (
               <div className="text-center py-16 px-4">
@@ -119,8 +107,7 @@ const TrainingsPage = () => {
                 <h3 className="text-lg font-semibold text-slate-900 mb-1">No upcoming trainings</h3>
                 <p className="text-muted-foreground mb-6">Get started by creating your first training session.</p>
                 <Button onClick={() => { setSelectedTraining(null); setDialogOpen(true); }}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create First Training
+                  <Plus className="h-4 w-4 mr-2" />Create First Training
                 </Button>
               </div>
             ) : (
@@ -135,11 +122,9 @@ const TrainingsPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {trainings.map((training) => (
+                  {trainings.map(training => (
                     <TableRow key={training.id} className="hover:bg-slate-50/50 transition-colors border-b-slate-100">
-                      <TableCell className="font-medium text-slate-900 py-4">
-                        {training.title}
-                      </TableCell>
+                      <TableCell className="font-medium text-slate-900 py-4">{training.title}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <span className="flex items-center text-sm text-slate-700">
@@ -159,24 +144,14 @@ const TrainingsPage = () => {
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-primary hover:bg-blue-50">
-                            <Link to={`/trainings/${training.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Link>
+                            <Link to={`/pre-training/${training.id}`}><Eye className="h-4 w-4" /></Link>
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-slate-500 hover:text-primary hover:bg-blue-50"
-                            onClick={() => { setSelectedTraining(training); setDialogOpen(true); }}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-primary hover:bg-blue-50"
+                            onClick={() => { setSelectedTraining(training); setDialogOpen(true); }}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-slate-500 hover:text-destructive hover:bg-red-50"
-                            onClick={() => handleDelete(training.id)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-destructive hover:bg-red-50"
+                            onClick={() => handleDelete(training.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -188,22 +163,22 @@ const TrainingsPage = () => {
             )}
           </CardContent>
         </Card>
-
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="text-xl">
-                {selectedTraining ? 'Edit Training Session' : 'Create New Training'}
-              </DialogTitle>
-            </DialogHeader>
-            <TrainingForm
-              training={selectedTraining}
-              onSuccess={() => { setDialogOpen(false); fetchTrainings(); }}
-              onCancel={() => setDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              {selectedTraining ? 'Edit Training Session' : 'Create New Training'}
+            </DialogTitle>
+          </DialogHeader>
+          <TrainingForm
+            training={selectedTraining}
+            onSuccess={() => { setDialogOpen(false); fetchTrainings(); }}
+            onCancel={() => setDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

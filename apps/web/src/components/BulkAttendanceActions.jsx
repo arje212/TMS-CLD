@@ -4,6 +4,17 @@ import { CheckSquare, XSquare, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BulkAttendanceActions = ({ assignments, attendanceRecords, onMarkAllPresent, onMarkAllAbsent }) => {
+  const formatHHMM = (hhmm) => {
+    if (!hhmm) return 'N/A';
+    const [h, m] = hhmm.split(':');
+    const hour = Number(h);
+    if (Number.isNaN(hour)) return hhmm;
+    const display = hour % 12 === 0 ? 12 : hour % 12;
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    return `${display}:${m || '00'} ${ampm}`;
+  };
+
+  const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
   
   const handleExport = () => {
     if (!assignments.length) {
@@ -18,13 +29,13 @@ const BulkAttendanceActions = ({ assignments, attendanceRecords, onMarkAllPresen
         Name: trainee?.name || 'Unknown',
         ID: trainee?.unique_id || 'N/A',
         Status: record?.status || 'pending',
-        CheckIn: record?.check_in_time ? new Date(record.check_in_time).toLocaleString() : 'N/A',
-        CheckOut: record?.check_out_time ? new Date(record.check_out_time).toLocaleString() : 'N/A'
+        CheckIn: formatHHMM(record?.time_in),
+        CheckOut: formatHHMM(record?.time_out),
       };
     });
 
     const headers = Object.keys(data[0]).join(',');
-    const rows = data.map(row => Object.values(row).map(val => `"${val}"`).join(','));
+    const rows = data.map(row => Object.values(row).map(escapeCsv).join(','));
     const csv = [headers, ...rows].join('\n');
     
     const blob = new Blob([csv], { type: 'text/csv' });

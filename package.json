@@ -13,5 +13,8 @@
   },
   "workspaces": [
     "apps/*"
-  ]
+  ],
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
 }

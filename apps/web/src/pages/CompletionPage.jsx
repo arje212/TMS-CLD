@@ -79,11 +79,11 @@ const CompletionPage = () => {
                         </TableCell>
                         <TableCell>{record.expand?.training?.title || 'Unknown Training'}</TableCell>
                         <TableCell>
-                          {new Date(record.completion_date).toLocaleDateString()}
+                          {record.completion_date ? new Date(record.completion_date).toLocaleDateString() : 'N/A'}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={record.completion_status === 'completed' ? 'default' : 'outline'}>
-                            {record.completion_status}
+                          <Badge variant={record.status === 'completed' ? 'default' : 'outline'}>
+                            {record.status || 'pending'}
                           </Badge>
                         </TableCell>
                       </TableRow>

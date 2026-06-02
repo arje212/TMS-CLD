@@ -86,6 +86,16 @@ const TrainingDetailPageTrainee = () => {
     }
   };
 
+  const formatHHMM = (hhmm) => {
+    if (!hhmm) return 'Not recorded';
+    const [h, m] = hhmm.split(':');
+    const hour = Number(h);
+    if (Number.isNaN(hour)) return hhmm;
+    const display = hour % 12 === 0 ? 12 : hour % 12;
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    return `${display}:${m || '00'} ${ampm}`;
+  };
+
   return (
     <>
       <Helmet>
@@ -131,11 +141,11 @@ const TrainingDetailPageTrainee = () => {
                   <div className="bg-slate-50 rounded-xl p-4 grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-xs text-slate-500 uppercase tracking-wider block mb-1">Check-in Time</span>
-                      <span className="font-medium text-slate-900">{formatDate(attendance.check_in_time)}</span>
+                      <span className="font-medium text-slate-900">{formatHHMM(attendance.time_in)}</span>
                     </div>
                     <div>
                       <span className="text-xs text-slate-500 uppercase tracking-wider block mb-1">Check-out Time</span>
-                      <span className="font-medium text-slate-900">{attendance.check_out_time ? formatDate(attendance.check_out_time) : 'Not recorded'}</span>
+                      <span className="font-medium text-slate-900">{formatHHMM(attendance.time_out)}</span>
                     </div>
                   </div>
                 ) : (
@@ -152,7 +162,7 @@ const TrainingDetailPageTrainee = () => {
                 <CardTitle className="text-lg">Certification</CardTitle>
               </CardHeader>
               <CardContent className="pt-6 text-center space-y-4">
-                {completion && completion.completion_status === 'completed' ? (
+                {completion && completion.status === 'completed' ? (
                   <>
                     <div className="mx-auto w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2">
                       <CheckCircle2 className="h-8 w-8" />

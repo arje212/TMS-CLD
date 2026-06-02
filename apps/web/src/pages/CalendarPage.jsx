@@ -48,10 +48,9 @@ const colorMap = {
   blush:    'hsl(340 80% 88%)',
 };
 
-// Map training status → note color
 const statusColorMap = {
-  upcoming: 'blue',
-  ongoing:  'amber',
+  upcoming:  'blue',
+  ongoing:   'amber',
   completed: 'green',
 };
 
@@ -59,13 +58,12 @@ const statusDot = {
   Confirmed: 'bg-green-500',
   Pending:   'bg-yellow-500',
   Cancelled: 'bg-red-500',
-  // Training statuses
   upcoming:  'bg-blue-500',
   ongoing:   'bg-amber-500',
   completed: 'bg-emerald-500',
 };
 
-// ─── Sticky Note ──────────────────────────────────────────────────────────────
+// ─── Sticky Note (used in DateDetailsModal only) ──────────────────────────────
 
 const StickyNote = ({ id, title, roomType, status, time, color, rotation, onEdit, onDelete, onDragStart, isTraining }) => {
   const [hovered, setHovered] = useState(false);
@@ -81,7 +79,6 @@ const StickyNote = ({ id, title, roomType, status, time, color, rotation, onEdit
       className={`relative animate-pop-in ${!isTraining ? 'cursor-move' : 'cursor-default'}`}
       style={{ transform: `rotate(${rotation}deg)`, transformOrigin: 'center top' }}
     >
-      {/* Pin */}
       <div className="absolute -top-3 left-1/2 z-10" style={{ transform: 'translateX(-50%)' }}>
         <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
           <circle cx="10" cy="6" r="4" fill={pinColor} opacity="0.9" />
@@ -90,8 +87,6 @@ const StickyNote = ({ id, title, roomType, status, time, color, rotation, onEdit
           <circle cx="10" cy="14" r="1.5" fill={pinColor} opacity="0.9" />
         </svg>
       </div>
-
-      {/* Body */}
       <div
         className="relative p-2 rounded-sm flex flex-col transition-all duration-200"
         style={{
@@ -110,26 +105,16 @@ const StickyNote = ({ id, title, roomType, status, time, color, rotation, onEdit
         </div>
         <p className="font-semibold text-[10px] text-gray-900 line-clamp-1 mb-0.5">{title}</p>
         <p className="text-[9px] text-gray-600 mb-1.5">{time}</p>
-
-        {/* Only show edit/delete for manual bookings */}
         {!isTraining && (
           <div className="mt-auto flex gap-0.5">
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(id); }}
-              className="h-5 w-5 flex items-center justify-center rounded hover:bg-black/10 text-gray-600"
-            >
+            <button onClick={(e) => { e.stopPropagation(); onEdit(id); }} className="h-5 w-5 flex items-center justify-center rounded hover:bg-black/10 text-gray-600">
               <Edit2 className="h-2.5 w-2.5" />
             </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(id); }}
-              className="h-5 w-5 flex items-center justify-center rounded hover:bg-black/10 text-gray-600"
-            >
+            <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="h-5 w-5 flex items-center justify-center rounded hover:bg-black/10 text-gray-600">
               <Trash2 className="h-2.5 w-2.5" />
             </button>
           </div>
         )}
-
-        {/* Training badge */}
         {isTraining && (
           <div className="mt-auto">
             <span className="text-[8px] px-1 py-0.5 rounded bg-black/10 text-gray-700 font-medium capitalize">
@@ -142,7 +127,7 @@ const StickyNote = ({ id, title, roomType, status, time, color, rotation, onEdit
   );
 };
 
-// ─── Note Colors for Picker ───────────────────────────────────────────────────
+// ─── Note Colors ──────────────────────────────────────────────────────────────
 
 const NOTE_COLORS = [
   { key: 'yellow',  label: 'Butter',     bg: 'hsl(54 100% 88%)'  },
@@ -399,7 +384,7 @@ const DateDetailsModal = ({ isOpen, onClose, date, bookings, onEdit, onDelete })
           {bookings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
               <Calendar className="h-10 w-10 text-white/30" />
-              <p className="text-white/50 text-sm">No bookings for this date.</p>
+              <p className="text-white/50 text-sm">No items for this date.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 pt-4">
@@ -442,15 +427,11 @@ const ParallaxBoard = ({ children }) => {
 const STORAGE_KEY = 'tms_calendar_bookings';
 
 const CalendarPage = () => {
-  // Manual bookings from localStorage
-  const [bookings, setBookings] = useState(() => {
+  const [manualBookings, setManualBookings] = useState(() => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
     catch { return []; }
   });
-
-  // Trainings from PocketBase
   const [trainings, setTrainings] = useState([]);
-
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -458,49 +439,42 @@ const CalendarPage = () => {
   const [editingBooking, setEditingBooking] = useState(null);
   const [draggedId, setDraggedId] = useState(null);
 
-  // Save manual bookings to localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-  }, [bookings]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(manualBookings));
+  }, [manualBookings]);
 
-  // Fetch trainings from PocketBase
   useEffect(() => {
     fetchTrainings();
   }, []);
 
   const fetchTrainings = async () => {
     try {
-      const result = await pb.collection('trainings').getFullList({
-        sort: '-date',
-        $autoCancel: false
-      });
+      const result = await pb.collection('trainings').getFullList({ sort: '-date', $autoCancel: false });
       setTrainings(result);
     } catch (error) {
       console.error('Error fetching trainings:', error);
     }
   };
 
-  // Convert PocketBase training to calendar note format
-  const trainingToNote = (training) => ({
-    id: `training-${training.id}`,
-    title: training.title,
-    roomType: training.location || 'Training Room',
-    status: training.status || 'upcoming',
-    time: training.time || '',
-    color: training.color || statusColorMap[training.status] || 'blue',
-    date: training.date,
+  const trainingToNote = (t) => ({
+    id: `training-${t.id}`,
+    title: t.title,
+    roomType: t.location || 'Training Room',
+    status: t.status || 'upcoming',
+    time: t.time || '',
+    color: t.color || statusColorMap[t.status] || 'blue',
+    date: t.date,
     attendees: '',
-    notes: training.description || '',
+    notes: t.description || '',
     isTraining: true,
   });
 
-  // Get all items (trainings + manual bookings) for a specific date
   const getItemsForDate = (date) => {
     if (!date) return [];
     const key = typeof date === 'string' ? date : formatDateKey(date);
     const trainingNotes = trainings.map(trainingToNote).filter(t => t.date === key);
-    const manualBookings = bookings.filter(b => b.date === key);
-    return [...trainingNotes, ...manualBookings];
+    const manual = manualBookings.filter(b => b.date === key);
+    return [...trainingNotes, ...manual];
   };
 
   const handleAddBooking = (date, e) => {
@@ -516,35 +490,37 @@ const CalendarPage = () => {
   };
 
   const handleEditBooking = (id) => {
-    const b = bookings.find(b => b.id === id);
+    const b = manualBookings.find(b => b.id === id);
     if (b) { setEditingBooking(b); setSelectedDate(b.date); setModalOpen(true); }
   };
 
   const handleDeleteBooking = (id) => {
-    setBookings(prev => prev.filter(b => b.id !== id));
+    setManualBookings(prev => prev.filter(b => b.id !== id));
     toast('Booking deleted');
   };
 
   const handleSubmitBooking = (data) => {
     if (editingBooking) {
-      setBookings(prev => prev.map(b => b.id === editingBooking.id ? data : b));
+      setManualBookings(prev => prev.map(b => b.id === editingBooking.id ? data : b));
       toast('Booking updated');
     } else {
-      setBookings(prev => [...prev, data]);
+      setManualBookings(prev => [...prev, data]);
       toast('Booking created!');
     }
     setEditingBooking(null);
   };
 
   const handleDragStart = (e, id) => {
-    setDraggedId(id);
-    e.dataTransfer.effectAllowed = 'move';
+    if (manualBookings.some(b => b.id === id)) {
+      setDraggedId(id);
+      e.dataTransfer.effectAllowed = 'move';
+    }
   };
 
   const handleDrop = (e, date) => {
     e.preventDefault();
     if (!draggedId || !date) return;
-    setBookings(prev => prev.map(b => b.id === draggedId ? { ...b, date: formatDateKey(date) } : b));
+    setManualBookings(prev => prev.map(b => b.id === draggedId ? { ...b, date: formatDateKey(date) } : b));
     setDraggedId(null);
     toast('Booking moved');
   };
@@ -576,6 +552,7 @@ const CalendarPage = () => {
 
         <ParallaxBoard>
           <div className="relative w-full">
+
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
               <div>
@@ -615,7 +592,7 @@ const CalendarPage = () => {
 
             {/* Day headers */}
             <div className="grid grid-cols-7 mb-1">
-              {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => (
+              {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map(d => (
                 <div key={d} className="text-center text-white/60 text-[10px] font-semibold py-1 uppercase tracking-wider">
                   {d.slice(0, 3)}
                 </div>
@@ -641,6 +618,7 @@ const CalendarPage = () => {
                     `}>
                     {date && (
                       <>
+                        {/* Date number + add button */}
                         <div className="flex items-center justify-between mb-1">
                           <span className={`font-semibold leading-none
                             ${isToday
@@ -655,19 +633,46 @@ const CalendarPage = () => {
                           </button>
                         </div>
 
-                        <div className="space-y-1" onClick={e => e.stopPropagation()}>
-                          {items.slice(0, 1).map((item, i) => (
-                            <StickyNote key={item.id} {...item}
-                              rotation={ROTATIONS[i % ROTATIONS.length]}
+                        <div className="space-y-0.5" onClick={e => e.stopPropagation()}>
+                          {items.length === 1 ? (
+                            // Single item → full sticky note
+                            <StickyNote
+                              key={items[0].id}
+                              {...items[0]}
+                              rotation={ROTATIONS[0]}
                               onEdit={handleEditBooking}
                               onDelete={handleDeleteBooking}
-                              onDragStart={handleDragStart} />
-                          ))}
-                          {items.length > 1 && (
-                            <div onClick={(e) => { e.stopPropagation(); handleDateClick(date); }}
-                              className="text-[9px] text-white font-semibold text-center bg-white/20 hover:bg-white/30 rounded-lg py-1 cursor-pointer transition-colors">
-                              +{items.length - 1} more
-                            </div>
+                              onDragStart={handleDragStart}
+                            />
+                          ) : (
+                            // Multiple items → compact pills, up to 2 visible
+                            <>
+                              {items.slice(0, 2).map((item) => {
+                                const bg = colorMap[item.color] || colorMap.yellow;
+                                const dotClass = statusDot[item.status] || 'bg-gray-400';
+                                return (
+                                  <div
+                                    key={item.id}
+                                    onClick={(e) => { e.stopPropagation(); handleDateClick(date); }}
+                                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-md cursor-pointer hover:brightness-95 transition-all truncate"
+                                    style={{ backgroundColor: bg }}
+                                  >
+                                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotClass}`} />
+                                    <span className="text-[9px] font-semibold text-gray-800 truncate leading-tight">
+                                      {item.title}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                              {items.length > 2 && (
+                                <div
+                                  onClick={(e) => { e.stopPropagation(); handleDateClick(date); }}
+                                  className="text-[9px] text-white/70 font-medium pl-1 cursor-pointer hover:text-white transition-colors"
+                                >
+                                  +{items.length - 2} more
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       </>
@@ -676,6 +681,7 @@ const CalendarPage = () => {
                 );
               })}
             </div>
+
           </div>
         </ParallaxBoard>
       </div>

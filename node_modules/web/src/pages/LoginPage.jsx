@@ -43,25 +43,25 @@ const LoginPage = () => {
   const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
 
   const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    setLoginError('');
-    setLoginLoading(true);
+  e.preventDefault();
+  setLoginError('');
+  setLoginLoading(true);
 
-    try {
-      const authData = await login(loginEmail, loginPassword);
-      if (authData.record.role === 'admin') {
-        navigate('/dashboard');
-      } else if (authData.record.role === 'trainee') {
-        navigate('/trainee-dashboard');
-      } else {
-        navigate('/');
-      }
-    } catch (err) {
-      setLoginError('Invalid email or password');
-    } finally {
-      setLoginLoading(false);
+  try {
+    const authData = await login(loginEmail, loginPassword);
+    if (authData.record.role === 'admin') {
+      navigate('/torres-tech/dashboard'); // ← dito lang nagbago
+    } else if (authData.record.role === 'trainee') {
+      navigate('/trainee-dashboard');
+    } else {
+      navigate('/');
     }
-  };
+  } catch (err) {
+    setLoginError('Invalid email or password');
+  } finally {
+    setLoginLoading(false);
+  }
+};
 
   const validateRegForm = () => {
     const errors = {};

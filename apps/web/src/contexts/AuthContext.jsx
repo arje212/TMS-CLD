@@ -3,7 +3,6 @@ import pb from '@/lib/pocketbaseClient.js';
 
 const AuthContext = createContext();
 
-// MOCK ADMIN DATA - for development/testing only
 const MOCK_ADMIN = {
   id: 'admin-001',
   email: 'raybhudz90@gmail.com',
@@ -14,42 +13,50 @@ const MOCK_ADMIN = {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser]     = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
+    const mockAuth = localStorage.getItem('mockAuth');
+    if (mockAuth) {
+      try {
+        const parsed = JSON.parse(mockAuth);
+        setCurrentUser(parsed);
+        setInitialLoading(false);
+        return;
+      } catch {
+        localStorage.removeItem('mockAuth');
+      }
+    }
+
     if (pb.authStore.isValid) {
       setCurrentUser(pb.authStore.model);
     }
+
     setInitialLoading(false);
   }, []);
 
   const login = async (email, password) => {
-    // MOCK LOGIN - Check against hardcoded admin credentials
     if (email === MOCK_ADMIN.email && password === MOCK_ADMIN.password) {
       const mockAuthData = {
         record: MOCK_ADMIN,
         token: 'mock-token-' + Date.now()
       };
       setCurrentUser(mockAuthData.record);
-      // Store in localStorage for persistence
       localStorage.setItem('mockAuth', JSON.stringify(mockAuthData.record));
       return mockAuthData;
     }
 
-    // Try real PocketBase authentication as fallback
     try {
       const authData = await pb.collection('users').authWithPassword(email, password, { $autoCancel: false });
       setCurrentUser(authData.record);
       return authData;
-    } catch (error) {
+    } catch {
       throw new Error('Invalid email or password');
     }
   };
@@ -66,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     initialLoading,
     isAuthenticated: pb.authStore.isValid || !!currentUser,
-    isAdmin: currentUser?.role === 'admin',
+    isAdmin:   currentUser?.role === 'admin',
     isTrainee: currentUser?.role === 'trainee',
   };
 

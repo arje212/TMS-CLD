@@ -2,6 +2,13 @@ import { useState, useCallback } from 'react';
 import pb from '@/lib/pocketbaseClient.js';
 import { toast } from 'sonner';
 
+const getLocalDateString = () => new Date().toLocaleDateString('en-CA');
+
+const getCurrentHHMM = () => {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+};
+
 export const useAttendance = () => {
   const [loading, setLoading] = useState(false);
 
@@ -45,13 +52,19 @@ export const useAttendance = () => {
 
       if (existing) {
         if (existing.status !== 'present') {
-          await pb.collection('attendance').update(existing.id, { status: 'present' }, { $autoCancel: false });
+          await pb.collection('attendance').update(existing.id, {
+            status: 'present',
+            date: existing.date || getLocalDateString(),
+            time_in: existing.time_in || getCurrentHHMM(),
+          }, { $autoCancel: false });
         }
       } else {
         await pb.collection('attendance').create({
           training: trainingId,
           trainee: traineeId,
-          status: 'present'
+          status: 'present',
+          date: getLocalDateString(),
+          time_in: getCurrentHHMM(),
         }, { $autoCancel: false });
       }
       return true;
@@ -73,12 +86,16 @@ export const useAttendance = () => {
       ).catch(() => null);
 
       if (existing) {
-        await pb.collection('attendance').update(existing.id, { status: 'absent' }, { $autoCancel: false });
+        await pb.collection('attendance').update(existing.id, {
+          status: 'absent',
+          date: existing.date || getLocalDateString(),
+        }, { $autoCancel: false });
       } else {
         await pb.collection('attendance').create({
           training: trainingId,
           trainee: traineeId,
-          status: 'absent'
+          status: 'absent',
+          date: getLocalDateString(),
         }, { $autoCancel: false });
       }
       return true;
@@ -95,7 +112,7 @@ export const useAttendance = () => {
     try {
       setLoading(true);
       await pb.collection('attendance').update(attendanceId, {
-        check_out_time: new Date().toISOString()
+        time_out: getCurrentHHMM(),
       }, { $autoCancel: false });
       return true;
     } catch (error) {

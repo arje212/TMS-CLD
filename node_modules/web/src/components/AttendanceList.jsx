@@ -6,10 +6,15 @@ import AttendanceStatus from './AttendanceStatus.jsx';
 const AttendanceList = ({ assignments, attendanceRecords, onMarkPresent, onMarkAbsent, onCheckout }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredAssignments = assignments.filter(a => 
-    a.expand?.trainee?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.expand?.trainee?.unique_id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const normalizedSearch = searchQuery.toLowerCase();
+  const filteredAssignments = assignments.filter(a => {
+    const trainee = a.expand?.trainee;
+    return (
+      trainee?.name?.toLowerCase().includes(normalizedSearch) ||
+      trainee?.unique_id?.toLowerCase().includes(normalizedSearch) ||
+      trainee?.id_number?.toLowerCase().includes(normalizedSearch)
+    );
+  });
 
   const presentTrainees = filteredAssignments.filter(a => {
     const record = attendanceRecords.find(r => r.trainee === a.trainee);
@@ -43,6 +48,7 @@ const AttendanceList = ({ assignments, attendanceRecords, onMarkPresent, onMarkA
           <div className="grid gap-3">
             {presentTrainees.map(assignment => {
               const trainee = assignment.expand.trainee;
+              if (!trainee) return null;
               const record = attendanceRecords.find(r => r.trainee === trainee.id);
               return (
                 <AttendanceStatus
@@ -69,6 +75,7 @@ const AttendanceList = ({ assignments, attendanceRecords, onMarkPresent, onMarkA
           <div className="grid gap-3">
             {absentOrPendingTrainees.map(assignment => {
               const trainee = assignment.expand.trainee;
+              if (!trainee) return null;
               const record = attendanceRecords.find(r => r.trainee === trainee.id);
               return (
                 <AttendanceStatus

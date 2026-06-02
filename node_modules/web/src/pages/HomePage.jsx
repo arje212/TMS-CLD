@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
-import Header from '@/components/Header.jsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LayoutDashboard, Users, ClipboardList, TrendingUp, CheckCircle, Clock } from 'lucide-react';
@@ -49,7 +48,7 @@ const HomePage = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <Header />
+        
 
         <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">

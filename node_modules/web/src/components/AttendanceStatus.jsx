@@ -5,6 +5,16 @@ import { CheckCircle, XCircle, Clock } from 'lucide-react';
 
 const AttendanceStatus = ({ trainee, record, onMarkPresent, onMarkAbsent, onCheckout }) => {
   const status = record?.status || 'pending';
+
+  const formatHHMM = (hhmm) => {
+    if (!hhmm) return '';
+    const [h, m] = hhmm.split(':');
+    const hour = Number(h);
+    if (Number.isNaN(hour)) return hhmm;
+    const display = hour % 12 === 0 ? 12 : hour % 12;
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    return `${display}:${m || '00'} ${ampm}`;
+  };
   
   const getStatusBadge = () => {
     switch (status) {
@@ -25,15 +35,15 @@ const AttendanceStatus = ({ trainee, record, onMarkPresent, onMarkAbsent, onChec
           {getStatusBadge()}
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
-          <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{trainee.unique_id}</span>
-          {record?.check_in_time && (
+          <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{trainee.unique_id || trainee.id_number || 'No ID'}</span>
+          {record?.time_in && (
             <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" /> In: {new Date(record.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <Clock className="h-3 w-3" /> In: {formatHHMM(record.time_in)}
             </span>
           )}
-          {record?.check_out_time && (
+          {record?.time_out && (
             <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" /> Out: {new Date(record.check_out_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <Clock className="h-3 w-3" /> Out: {formatHHMM(record.time_out)}
             </span>
           )}
         </div>
@@ -50,7 +60,7 @@ const AttendanceStatus = ({ trainee, record, onMarkPresent, onMarkAbsent, onChec
             <XCircle className="h-4 w-4 mr-1" /> Absent
           </Button>
         )}
-        {status === 'present' && !record?.check_out_time && (
+        {status === 'present' && record && !record?.time_out && (
           <Button size="sm" variant="secondary" onClick={() => onCheckout(record.id)}>
             Check Out
           </Button>

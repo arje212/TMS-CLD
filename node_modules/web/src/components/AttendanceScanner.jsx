@@ -9,6 +9,13 @@ const RFID_SERVER = 'http://localhost:5050';
 const POLL_MS = 400;
 const COOLDOWN_MS = 3000; // 3 seconds before same card can scan again
 
+const getLocalDateString = () => new Date().toLocaleDateString('en-CA');
+
+const getCurrentHHMM = () => {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+};
+
 const AttendanceScanner = ({ trainingId, onScanSuccess }) => {
   const [scanInput, setScanInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
@@ -91,10 +98,14 @@ const AttendanceScanner = ({ trainingId, onScanSuccess }) => {
         const res = await fetch(`${RFID_SERVER}/uid`);
         const data = await res.json();
 
-        const uid = data.uid;
+        const uid = data.uid?.trim();
 
         // Ignore if: no uid, already processing, or same card in cooldown
-        if (!uid) return;
+        if (!uid || uid.toUpperCase() === 'NONE') {
+          lastProcessedUid.current = null;
+          isProcessing.current = false;
+          return;
+        }
         if (isProcessing.current) return;
         if (uid === lastProcessedUid.current) return;
 
@@ -184,14 +195,24 @@ const AttendanceScanner = ({ trainingId, onScanSuccess }) => {
       } else if (existing) {
         await pb.collection('attendance').update(
           existing.id,
-          { status: 'present' },
+          {
+            status: 'present',
+            date: existing.date || getLocalDateString(),
+            time_in: existing.time_in || getCurrentHHMM(),
+          },
           { $autoCancel: false }
         );
         toast.success(`✅ ${trainee.name} marked as present`);
         onScanSuccess();
       } else {
         await pb.collection('attendance').create(
-          { training: trainingId, trainee: trainee.id, status: 'present' },
+          {
+            training: trainingId,
+            trainee: trainee.id,
+            status: 'present',
+            date: getLocalDateString(),
+            time_in: getCurrentHHMM(),
+          },
           { $autoCancel: false }
         );
         toast.success(`✅ ${trainee.name} checked in successfully`);
